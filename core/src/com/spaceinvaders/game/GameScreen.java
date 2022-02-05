@@ -15,6 +15,8 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.TimeUtils;
 import java.util.Iterator;
+import java.util.Random;
+
 import sun.jvm.hotspot.gc.shared.Space;
 
 /**
@@ -59,8 +61,10 @@ public class GameScreen implements Screen {
     Rectangle spaceship;
     Array<Rectangle> aliens;
     Array<Rectangle> lasers;
+    Array<Rectangle> alienLasers;
     long lastAlienTime;
     long lastLaserTime;
+    long lastAlienLaserTime;
     int points;
 
     public GameScreen(final SpaceInvaders space) {
@@ -95,6 +99,8 @@ public class GameScreen implements Screen {
         aliens = new Array<Rectangle>();
         // instantiate laser array
         lasers = new Array<Rectangle>();
+        // instantiate alien laser array
+        alienLasers = new Array<Rectangle>();
         spawnAliens();
 
 
@@ -126,6 +132,20 @@ public class GameScreen implements Screen {
         lastLaserTime = TimeUtils.nanoTime();
     }
 
+    private void spawnAlienLaser(){
+        Rectangle alienLaser = new Rectangle();
+        Random rand = new Random();
+        Rectangle randAlien;
+        randAlien = aliens.get(rand.nextInt(6));
+        alienLaser.x = randAlien.x + 28;
+        alienLaser.y = randAlien.y;
+
+        alienLaser.width = 7;
+        alienLaser.height = 20;
+        alienLasers.add(alienLaser);
+        lastAlienLaserTime = TimeUtils.nanoTime();
+    }
+
     @Override
     public void show() {
         // music playback
@@ -153,8 +173,12 @@ public class GameScreen implements Screen {
         for(Rectangle alien : aliens){
             game.batch.draw(alienImage, alien.x, alien.y);
         }
+        // draw lasers
         for(Rectangle laser: lasers) {
             game.batch.draw(laserImage, laser.x, laser.y);
+        }
+        for(Rectangle alienLaser: alienLasers) {
+            game.batch.draw(laserImage, alienLaser.x, alienLaser.y);
         }
         game.batch.end();
 
@@ -173,7 +197,7 @@ public class GameScreen implements Screen {
         }
 
         // up for shooting laser
-        if(Gdx.input.isKeyPressed(Input.Keys.UP)) {
+        if(Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
             if(TimeUtils.nanoTime() - lastLaserTime > 0.25 * 1000000000) {
                 spawnLaser();
             }
@@ -184,11 +208,16 @@ public class GameScreen implements Screen {
         if(spaceship.x > 800 - 64){ spaceship.x = 800 -64; }
 
         // spawn new aliens check point total whether or not to speed up
-        if(points < 21){
+        if(points < 210){
             if(TimeUtils.nanoTime() - lastAlienTime > 2 * 1000000000) { spawnAliens(); }
         }
         else {
             if(TimeUtils.nanoTime() - lastAlienTime > 1.5 * 1000000000) { spawnAliens(); }
+        }
+
+        //spawn alienLasers
+        if (TimeUtils.nanoTime() - lastAlienLaserTime > 15 * 1000000000) {
+                spawnAlienLaser();
         }
 
         // move laser up screen and detect collisions. if collision detected removes laser and alien
@@ -201,9 +230,10 @@ public class GameScreen implements Screen {
                 Rectangle alien = iterAlien.next();
                 if(laser.overlaps(alien) && !lasers.isEmpty()){
                     iterAlien.remove();
-                    points++;
+                    points += 10;
                     iterLaser.remove();
                     explode.play();
+                    break;
                 }
             }
 
@@ -214,7 +244,7 @@ public class GameScreen implements Screen {
         while(iter.hasNext()) {
             Rectangle alien = iter.next();
             // check points to see if speed needs to be increased
-            if(points < 21) {
+            if(points < 210) {
                 alien.y -= 20 * Gdx.graphics.getDeltaTime();
             } else
                 alien.y -= 30 * Gdx.graphics.getDeltaTime();
@@ -226,6 +256,18 @@ public class GameScreen implements Screen {
             }
         }
 
+        // move alien lasers down screen and see if they hit the ship
+        Iterator<Rectangle> iterAL = alienLasers.iterator();
+        while(iterAL.hasNext()) {
+            Rectangle alienLaser = iterAL.next();
+            alienLaser.y -= 300 * Gdx.graphics.getDeltaTime();
+
+            if(alienLaser.overlaps(spaceship)){
+                gameOver.play();
+                spaceTheme.pause();
+                game.setScreen(new GameOverScreen(game));
+            }
+        }
     }
 
     @Override

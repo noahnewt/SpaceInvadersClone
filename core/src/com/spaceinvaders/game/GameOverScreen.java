@@ -44,12 +44,17 @@ public class GameOverScreen implements Screen {
 
         game.batch.begin();
         game.font.draw(game.batch, "G A M E     O V E R" , 100, 150);
-        game.font.draw(game.batch, "Press any button to play!!!", 100, 100);
+        game.font.draw(game.batch, "PRESS P TO PLAY AGAIN!!!", 100, 125);
+        game.font.draw(game.batch, "PRESS Q TO QUIT!!!", 100, 100);
+        game.font.setColor(Color.RED);
         game.batch.end();
 
-        if(Gdx.input.isKeyPressed(Input.Keys.ANY_KEY)){
+        if(Gdx.input.isKeyPressed(Input.Keys.P)) {
             game.setScreen(new MainMenuScreen(game));
             dispose();
+        }
+        if(Gdx.input.isKeyPressed(Input.Keys.Q)) {
+            Gdx.app.exit();
         }
     }
 
